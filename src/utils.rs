@@ -166,7 +166,7 @@ pub fn compile_hlsl_vulkan_sdk(
     let mut vulkan_sdk_path = PathBuf::from(std::env::var("VULKAN_SDK").map_err(
         |_| HassleError::NoVulkanSdk
     )?);
-    vulkan_sdk_path.push("\\\\Bin\\\\");
+    vulkan_sdk_path.push("\\Bin\\");
 
     let dxc = Dxc::new(Some(vulkan_sdk_path))?;
 
