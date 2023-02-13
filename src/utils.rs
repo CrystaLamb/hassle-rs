@@ -167,7 +167,6 @@ pub fn compile_hlsl_vulkan_sdk(
         |_| HassleError::NoVulkanSdk
     )?);
     vulkan_sdk_path = vulkan_sdk_path.join("Bin");
-    dbg!(&vulkan_sdk_path);
 
     let dxc = Dxc::new(Some(vulkan_sdk_path))?;
 
