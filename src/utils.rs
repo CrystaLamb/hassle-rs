@@ -74,6 +74,8 @@ pub enum HassleError {
     LibLoadingError(#[from] libloading::Error),
     #[error("Windows only")]
     WindowsOnly(String),
+    #[error("VulkanSDK not found!")]
+    NoVulkanSdk,
 }
 
 pub type Result<T, E = HassleError> = std::result::Result<T, E>;
@@ -120,6 +122,96 @@ pub fn compile_hlsl(
     defines: &[(&str, Option<&str>)],
 ) -> Result<Vec<u8>> {
     let dxc = Dxc::new(None)?;
+
+    let compiler = dxc.create_compiler()?;
+    let library = dxc.create_library()?;
+
+    let blob = library.create_blob_with_encoding_from_str(shader_text)?;
+
+    let result = compiler.compile(
+        &blob,
+        source_name,
+        entry_point,
+        target_profile,
+        args,
+        Some(&mut DefaultIncludeHandler {}),
+        defines,
+    );
+
+    match result {
+        Err(result) => {
+            let error_blob = result.0.get_error_buffer()?;
+            Err(HassleError::CompileError(
+                library.get_blob_as_string(&error_blob.into())?,
+            ))
+        }
+        Ok(result) => {
+            let result_blob = result.get_result()?;
+
+            Ok(result_blob.to_vec())
+        }
+    }
+}
+
+/// Helper function to directly compile a HLSL shader to an intermediate language,
+/// with "dxcompiler.dll" in VulkanSDK/Bin/
+pub fn compile_hlsl_vulkan_sdk(
+    source_name: &str,
+    shader_text: &str,
+    entry_point: &str,
+    target_profile: &str,
+    args: &[&str],
+    defines: &[(&str, Option<&str>)],
+) -> Result<Vec<u8>> {
+    let mut vulkan_sdk_path = PathBuf::from(std::env::var("VULKAN_SDK").map_err(
+        |_| HassleError::NoVulkanSdk
+    )?);
+    vulkan_sdk_path.push("/Bin/dxcompiler.dll");
+
+    let dxc = Dxc::new(Some(vulkan_sdk_path))?;
+
+    let compiler = dxc.create_compiler()?;
+    let library = dxc.create_library()?;
+
+    let blob = library.create_blob_with_encoding_from_str(shader_text)?;
+
+    let result = compiler.compile(
+        &blob,
+        source_name,
+        entry_point,
+        target_profile,
+        args,
+        Some(&mut DefaultIncludeHandler {}),
+        defines,
+    );
+
+    match result {
+        Err(result) => {
+            let error_blob = result.0.get_error_buffer()?;
+            Err(HassleError::CompileError(
+                library.get_blob_as_string(&error_blob.into())?,
+            ))
+        }
+        Ok(result) => {
+            let result_blob = result.get_result()?;
+
+            Ok(result_blob.to_vec())
+        }
+    }
+}
+
+/// Helper function to directly compile a HLSL shader to an intermediate language,
+/// with custom "dxcompiler.dll" given as an argument.
+pub fn compile_hlsl_custom_dll_path(
+    source_name: &str,
+    shader_text: &str,
+    entry_point: &str,
+    target_profile: &str,
+    args: &[&str],
+    defines: &[(&str, Option<&str>)],
+    dll_path: PathBuf,
+) -> Result<Vec<u8>> {
+    let dxc = Dxc::new(Some(dll_path))?;
 
     let compiler = dxc.create_compiler()?;
     let library = dxc.create_library()?;
