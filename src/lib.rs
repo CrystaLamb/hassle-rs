@@ -47,5 +47,5 @@ pub mod wrapper;
 pub mod intellisense;
 
 pub use crate::ffi::*;
-pub use crate::utils::{compile_hlsl, fake_sign_dxil_in_place, validate_dxil, HassleError, Result};
+pub use crate::utils::{compile_hlsl, compile_hlsl_vulkan_sdk, compile_hlsl_custom_dll_path, fake_sign_dxil_in_place, validate_dxil, HassleError, Result};
 pub use crate::wrapper::*;
